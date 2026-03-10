@@ -290,6 +290,36 @@ public class SkillDAO {
         return successCount;
     }
 
+    /**
+     * 13. 批量删除技能（事务处理）
+     */
+    public boolean deleteSkills(List<Integer> skillIds) {
+        if (skillIds == null || skillIds.isEmpty()) return false;
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        try {
+            conn = DBUtil.getConnection();
+            conn.setAutoCommit(false);
+            String sql = "DELETE FROM Skills WHERE skill_id = ?";
+            pstmt = conn.prepareStatement(sql);
+            for (int id : skillIds) {
+                pstmt.setInt(1, id);
+                pstmt.addBatch();
+            }
+            pstmt.executeBatch();
+            conn.commit();
+            return true;
+        } catch (SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
+            }
+            e.printStackTrace();
+        } finally {
+            DBUtil.close(null, pstmt, conn);
+        }
+        return false;
+    }
+
     // ===================== 私有辅助方法 =====================
 
     /**

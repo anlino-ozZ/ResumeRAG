@@ -117,13 +117,23 @@ public class EducationRecordDAO {
      * 5. 根据开发者ID查询所有教育记录
      */
     public List<EducationRecord> getEducationRecordsByDeveloperId(int developerId) {
+        return getEducationRecordsByDeveloperId(developerId, 1, 100);
+    }
+
+    /**
+     * 根据开发者ID查询教育记录（分页）
+     */
+    public List<EducationRecord> getEducationRecordsByDeveloperId(int developerId, int pageNum, int pageSize) {
         List<EducationRecord> list = new ArrayList<>();
-        String sql = "SELECT * FROM EducationRecords WHERE developer_id = ? ORDER BY start_date DESC";
+        int offset = (pageNum - 1) * pageSize;
+        String sql = "SELECT * FROM EducationRecords WHERE developer_id = ? ORDER BY start_date DESC LIMIT ? OFFSET ?";
 
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, developerId);
+            pstmt.setInt(2, pageSize);
+            pstmt.setInt(3, offset);
             ResultSet rs = pstmt.executeQuery();
 
             while (rs.next()) {

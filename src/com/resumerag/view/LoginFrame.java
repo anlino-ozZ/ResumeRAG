@@ -4,8 +4,9 @@ import com.resumerag.dao.UserDAO;
 import com.resumerag.model.User;
 
 import javax.swing.*;
+import javax.swing.border.*;
 import java.awt.*;
-
+import java.awt.event.*;
 /**
  * 登录窗口
  */
@@ -73,8 +74,32 @@ public class LoginFrame extends JFrame {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
         buttonPanel.add(loginBtn);
         buttonPanel.add(cancelBtn);
-        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
 
+        // 添加注册链接
+        JPanel linkPanel = new JPanel(new FlowLayout());
+        linkPanel.setBackground(Color.WHITE);
+        JLabel registerLink = new JLabel("没有账号？点击注册");
+        registerLink.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        registerLink.setForeground(new Color(0, 102, 204));
+        registerLink.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        linkPanel.add(registerLink);
+
+        // 注册链接点击事件
+        registerLink.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                new RegisterFrame().setVisible(true);
+                dispose(); // 关闭登录窗口
+            }
+        });
+
+        // 组合面板
+        JPanel southPanel = new JPanel(new BorderLayout());
+        southPanel.setBackground(Color.WHITE);
+        southPanel.add(buttonPanel, BorderLayout.NORTH);
+        southPanel.add(linkPanel, BorderLayout.SOUTH);
+
+        mainPanel.add(southPanel, BorderLayout.SOUTH);
         add(mainPanel);
     }
 

@@ -17,21 +17,22 @@ public class UserDAO {
     // ===================== 增删改查基础方法 =====================
 
     /**
-     * 1. 添加用户
+     * 添加用户（带status字段）
      */
     public boolean addUser(User user) {
-        String sql = "INSERT INTO Users (username, password, role, created_time) VALUES (?, ?, ?, ?)";
+        // 修改SQL，添加status字段
+        String sql = "INSERT INTO Users (username, password, role, status, created_time) VALUES (?, ?, ?, ?, ?)";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             pstmt.setString(1, user.getUsername());
             pstmt.setString(2, user.getPassword());
             pstmt.setString(3, user.getRole());
-            pstmt.setTimestamp(4, Timestamp.valueOf(LocalDateTime.now()));
+            pstmt.setString(4, user.getStatus() != null ? user.getStatus() : "active"); // 默认active
+            pstmt.setTimestamp(5, Timestamp.valueOf(LocalDateTime.now()));
 
             int affectedRows = pstmt.executeUpdate();
 
-            // 获取自动生成的主键
             if (affectedRows > 0) {
                 ResultSet rs = pstmt.getGeneratedKeys();
                 if (rs.next()) {
@@ -175,11 +176,10 @@ public class UserDAO {
     // ===================== 业务相关方法 =====================
 
     /**
-     * 8. 用户登录验证
-     * @return 登录成功返回User对象，失败返回null
+     * 用户登录验证（只允许active状态的用户登录）
      */
     public User login(String username, String password) {
-        String sql = "SELECT * FROM Users WHERE username = ? AND password = ?";
+        String sql = "SELECT * FROM Users WHERE username = ? AND password = ? AND status = 'active'";
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
@@ -198,27 +198,6 @@ public class UserDAO {
         return null;
     }
 
-    /**
-     * 9. 检查用户名是否存在（注册时用）
-     */
-    public boolean isUsernameExist(String username) {
-        String sql = "SELECT COUNT(*) FROM Users WHERE username = ?";
-        try (Connection conn = DBUtil.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setString(1, username);
-            ResultSet rs = pstmt.executeQuery();
-
-            if (rs.next()) {
-                return rs.getInt(1) > 0;
-            }
-            rs.close();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
 
     /**
      * 10. 根据角色查询用户
@@ -242,7 +221,27 @@ public class UserDAO {
         }
         return list;
     }
+    /**
+     * 检查用户名是否存在
+     */
+    public boolean isUsernameExist(String username) {
+        String sql = "SELECT COUNT(*) FROM Users WHERE username = ?";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
+            pstmt.setString(1, username);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+            rs.close();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
     // ===================== 私有辅助方法 =====================
 
     /**
@@ -254,6 +253,7 @@ public class UserDAO {
         user.setUsername(rs.getString("username"));
         user.setPassword(rs.getString("password"));
         user.setRole(rs.getString("role"));
+        user.setStatus(rs.getString("status"));  // 读取status字段
 
         Timestamp ts = rs.getTimestamp("created_time");
         if (ts != null) {
@@ -261,6 +261,46 @@ public class UserDAO {
         }
 
         return user;
+    }
+
+    /**
+     * 更新用户状态
+     */
+    public boolean updateUserStatus(int userId, String status) {
+        String sql = "UPDATE Users SET status = ? WHERE user_id = ?";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, status);
+            pstmt.setInt(2, userId);
+
+            return pstmt.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
+     * 获取待审核的用户列表
+     */
+    public List<User> getPendingUsers() {
+        List<User> list = new ArrayList<>();
+        String sql = "SELECT * FROM Users WHERE status = 'pending' ORDER BY created_time";
+
+        try (Connection conn = DBUtil.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                list.add(extractUserFromResultSet(rs));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
     }
 
     // ===================== 测试方法 =====================

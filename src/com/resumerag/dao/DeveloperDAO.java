@@ -116,6 +116,28 @@ public class DeveloperDAO {
     }
 
     /**
+     * 根据用户ID获取对应的开发者信息
+     */
+    public Developer getDeveloperByUserId(int userId) {
+        String sql = "SELECT * FROM Developers WHERE user_id = ?";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                return extractDeveloperFromResultSet(rs);
+            }
+            rs.close();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
      * 5. 根据ID查询开发者（包含所有关联信息：技能、项目、教育）
      */
     public Developer getDeveloperWithDetails(int developerId) {
@@ -648,6 +670,36 @@ public class DeveloperDAO {
             e.printStackTrace();
         }
         return stats;
+    }
+
+    /**
+     * 17. 批量删除开发者（事务处理）
+     */
+    public boolean deleteDevelopers(List<Integer> developerIds) {
+        if (developerIds == null || developerIds.isEmpty()) return false;
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        try {
+            conn = DBUtil.getConnection();
+            conn.setAutoCommit(false);
+            String sql = "DELETE FROM Developers WHERE developer_id = ?";
+            pstmt = conn.prepareStatement(sql);
+            for (int id : developerIds) {
+                pstmt.setInt(1, id);
+                pstmt.addBatch();
+            }
+            pstmt.executeBatch();
+            conn.commit();
+            return true;
+        } catch (SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
+            }
+            e.printStackTrace();
+        } finally {
+            DBUtil.close(null, pstmt, conn);
+        }
+        return false;
     }
 
     // ===================== 私有辅助方法 =====================

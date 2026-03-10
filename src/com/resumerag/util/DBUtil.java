@@ -1,19 +1,41 @@
 package com.resumerag.util;
 
 import java.sql.*;
+import java.util.Properties;
+import java.io.InputStream;
+import java.io.IOException;
 
 public class DBUtil {
-    // MySQL连接参数（根据你的配置修改）
-    private static final String URL = "jdbc:mysql://localhost:3306/resume_rag?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8&allowPublicKeyRetrieval=true&useSSL=false";
-    private static final String USERNAME = "root";  // MySQL用户名
-    private static final String PASSWORD = "Zal13715002181,"; // MySQL密码
+    private static String URL;
+    private static String USERNAME;
+    private static String PASSWORD;
     private static final String DRIVER = "com.mysql.cj.jdbc.Driver";
 
-    // 静态代码块，加载驱动
+    // 静态代码块，加载驱动和配置
     static {
         try {
             Class.forName(DRIVER);
+            loadConfig();
         } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void loadConfig() {
+        Properties props = new Properties();
+        try (InputStream in = DBUtil.class.getClassLoader().getResourceAsStream("db.properties")) {
+            if (in == null) {
+                System.err.println("找不到 db.properties 配置文件，使用默认配置");
+                URL = "jdbc:mysql://localhost:3306/resume_rag?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8&allowPublicKeyRetrieval=true";
+                USERNAME = "root";
+                PASSWORD = "your_password";
+            } else {
+                props.load(in);
+                URL = props.getProperty("db.url");
+                USERNAME = props.getProperty("db.user");
+                PASSWORD = props.getProperty("db.password");
+            }
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }

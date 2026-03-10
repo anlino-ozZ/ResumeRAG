@@ -121,13 +121,23 @@ public class ProjectExperienceDAO {
      * 5. 根据开发者ID查询所有项目
      */
     public List<ProjectExperience> getProjectsByDeveloperId(int developerId) {
+        return getProjectsByDeveloperId(developerId, 1, 100);
+    }
+
+    /**
+     * 根据开发者ID查询项目（分页）
+     */
+    public List<ProjectExperience> getProjectsByDeveloperId(int developerId, int pageNum, int pageSize) {
         List<ProjectExperience> list = new ArrayList<>();
-        String sql = "SELECT * FROM ProjectExperiences WHERE developer_id = ? ORDER BY start_date DESC";
+        int offset = (pageNum - 1) * pageSize;
+        String sql = "SELECT * FROM ProjectExperiences WHERE developer_id = ? ORDER BY start_date DESC LIMIT ? OFFSET ?";
 
         try (Connection conn = DBUtil.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, developerId);
+            pstmt.setInt(2, pageSize);
+            pstmt.setInt(3, offset);
             ResultSet rs = pstmt.executeQuery();
 
             while (rs.next()) {

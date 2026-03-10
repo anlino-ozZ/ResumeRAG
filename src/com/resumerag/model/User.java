@@ -6,7 +6,8 @@ public class User {
     private int userId;
     private String username;
     private String password;
-    private String role;  // 'admin' 或 'developer'
+    private String role;  // 'admin', 'developer', 'pending_admin'
+    private String status; // 'pending', 'active', 'rejected'  ← 新增字段
     private LocalDateTime createdTime;
 
     // 构造方法
@@ -16,6 +17,7 @@ public class User {
         this.username = username;
         this.password = password;
         this.role = role;
+        this.status = "active"; // 默认激活
     }
 
     // Getter 和 Setter
@@ -31,8 +33,25 @@ public class User {
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
 
+    // 新增status的getter/setter
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+
     public LocalDateTime getCreatedTime() { return createdTime; }
     public void setCreatedTime(LocalDateTime createdTime) { this.createdTime = createdTime; }
+
+    // 判断状态的方法
+    public boolean isActive() {
+        return "active".equals(status);
+    }
+
+    public boolean isPending() {
+        return "pending".equals(status);
+    }
+
+    public boolean isRejected() {
+        return "rejected".equals(status);
+    }
 
     @Override
     public String toString() {
@@ -40,6 +59,7 @@ public class User {
                 "userId=" + userId +
                 ", username='" + username + '\'' +
                 ", role='" + role + '\'' +
+                ", status='" + status + '\'' +  // 显示状态
                 '}';
     }
 }

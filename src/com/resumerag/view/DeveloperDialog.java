@@ -1,15 +1,18 @@
 package com.resumerag.view;
 
 import com.resumerag.dao.DeveloperDAO;
+import com.resumerag.dao.ExportRecordDAO;
 import com.resumerag.dao.SkillDAO;
 import com.resumerag.model.Developer;
 import com.resumerag.model.DeveloperSkill;
 import com.resumerag.model.Skill;
+import com.resumerag.model.User;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -20,6 +23,8 @@ public class DeveloperDialog extends JDialog {
     private Developer developer;
     private DeveloperDAO developerDAO;
     private SkillDAO skillDAO;
+    private User currentUser;  // 当前登录用户
+    private ExportRecordDAO exportRecordDAO;  // 导出记录DAO
 
     private JTextField nameField;
     private JTextField phoneField;
@@ -34,11 +39,14 @@ public class DeveloperDialog extends JDialog {
     private boolean isEdit;
 
     public DeveloperDialog(Frame owner, String title, Developer developer,
-                           DeveloperDAO developerDAO, SkillDAO skillDAO) {
+                           DeveloperDAO developerDAO, SkillDAO skillDAO,
+                           User currentUser, ExportRecordDAO exportRecordDAO) {
         super(owner, title, true);
         this.developer = developer;
         this.developerDAO = developerDAO;
         this.skillDAO = skillDAO;
+        this.currentUser = currentUser;  // 新增
+        this.exportRecordDAO = exportRecordDAO;
         this.isEdit = (developer != null);
 
         initComponents();
@@ -49,8 +57,30 @@ public class DeveloperDialog extends JDialog {
             loadData();
         }
 
+        // 如果是 developer 角色，且不是编辑自己的信息，则禁用编辑功能
+        if ("developer".equalsIgnoreCase(currentUser.getRole())) {
+            boolean isSelf = (developer != null && developer.getUserId() != null && developer.getUserId() == currentUser.getUserId());
+            if (!isSelf) {
+                disableEditing();
+            }
+        }
+
         setSize(500, 600);
         setLocationRelativeTo(owner);
+    }
+
+    /**
+     * 禁用编辑功能，仅查看详情
+     */
+    private void disableEditing() {
+        nameField.setEditable(false);
+        phoneField.setEditable(false);
+        emailField.setEditable(false);
+        expSpinner.setEnabled(false);
+        evaluationArea.setEditable(false);
+        addSkillBtn.setVisible(false);
+        saveBtn.setVisible(false);
+        setTitle("开发者详情 - " + (developer != null ? developer.getName() : ""));
     }
 
     private void initComponents() {
@@ -137,13 +167,21 @@ public class DeveloperDialog extends JDialog {
 
         // 按钮面板
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+
+        if (isEdit) {
+            JButton exportBtn = new JButton("导出简历");
+            exportBtn.addActionListener(e -> exportResume());
+            buttonPanel.add(exportBtn);
+        }
+
         buttonPanel.add(saveBtn);
         buttonPanel.add(cancelBtn);
-        southPanel.add(buttonPanel, BorderLayout.SOUTH);
-
-        add(southPanel, BorderLayout.SOUTH);
+        add(buttonPanel, BorderLayout.SOUTH);
     }
-
+    private void exportResume() {
+        // TODO: 实现完整的简历导出逻辑 (例如, 使用 iTextPDF 或 Apache POI)
+        JOptionPane.showMessageDialog(this, "简历导出功能尚未实现", "提示", JOptionPane.INFORMATION_MESSAGE);
+    }
     private void initListeners() {
         saveBtn.addActionListener(e -> save());
         cancelBtn.addActionListener(e -> dispose());
@@ -180,6 +218,12 @@ public class DeveloperDialog extends JDialog {
             skillPanel.revalidate();
             skillPanel.repaint();
         });
+        
+        // 只有 admin 角色可以看到删除技能按钮
+        if (!"admin".equalsIgnoreCase(currentUser.getRole())) {
+            removeBtn.setVisible(false);
+        }
+        
         rowPanel.add(removeBtn);
 
         skillPanel.add(rowPanel, gbc);
@@ -223,6 +267,14 @@ public class DeveloperDialog extends JDialog {
             JOptionPane.showMessageDialog(this, "姓名不能为空", "错误", JOptionPane.ERROR_MESSAGE);
             return;
         }
+        if (phoneField.getText().trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "电话不能为空", "错误", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (emailField.getText().trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "邮箱不能为空", "错误", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
 
         if (!isEdit) {
             developer = new Developer();
@@ -242,43 +294,71 @@ public class DeveloperDialog extends JDialog {
         }
 
         if (success) {
-            // 先删除旧的技能关联
-            if (isEdit) {
-                List<DeveloperSkill> oldSkills = developerDAO.getDeveloperSkills(developer.getDeveloperId());
-                for (DeveloperSkill ds : oldSkills) {
-                    developerDAO.deleteDeveloperSkill(developer.getDeveloperId(), ds.getSkillId());
-                }
-            }
-
-            // 添加新的技能关联
-            for (Component comp : skillPanel.getComponents()) {
-                if (comp instanceof JPanel) {
-                    JPanel rowPanel = (JPanel) comp;
-                    JLabel label = (JLabel) rowPanel.getComponent(0);
-                    String text = label.getText();
-
-                    // 解析技能名称和熟练度
-                    String skillName = text.split(" - ")[0];
-                    String profText = text.split(" - ")[1];
-                    int proficiency = 3;
-                    if ("了解".equals(profText)) proficiency = 1;
-                    else if ("入门".equals(profText)) proficiency = 2;
-                    else if ("熟练".equals(profText)) proficiency = 3;
-                    else if ("精通".equals(profText)) proficiency = 4;
-                    else if ("专家".equals(profText)) proficiency = 5;
-
-                    // 查询技能ID
-                    Skill skill = skillDAO.getSkillByName(skillName);
-                    if (skill != null) {
-                        developerDAO.addDeveloperSkill(developer.getDeveloperId(), skill.getSkillId(), proficiency);
-                    }
-                }
-            }
-
+            updateSkills();
             JOptionPane.showMessageDialog(this, "保存成功", "成功", JOptionPane.INFORMATION_MESSAGE);
             dispose();
         } else {
             JOptionPane.showMessageDialog(this, "保存失败", "错误", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void updateSkills() {
+        // 获取新技能列表
+        List<DeveloperSkill> newSkills = new ArrayList<>();
+        for (Component comp : skillPanel.getComponents()) {
+            if (comp instanceof JPanel) {
+                JPanel rowPanel = (JPanel) comp;
+                JLabel label = (JLabel) rowPanel.getComponent(0);
+                String text = label.getText();
+
+                String skillName = text.split(" - ")[0];
+                String profText = text.split(" - ")[1];
+                int proficiency = 3; // 默认值
+                if ("了解".equals(profText)) proficiency = 1;
+                else if ("入门".equals(profText)) proficiency = 2;
+                else if ("熟练".equals(profText)) proficiency = 3;
+                else if ("精通".equals(profText)) proficiency = 4;
+                else if ("专家".equals(profText)) proficiency = 5;
+
+                Skill skill = skillDAO.getSkillByName(skillName);
+                if (skill != null) {
+                    newSkills.add(new DeveloperSkill(developer.getDeveloperId(), skill.getSkillId(), proficiency));
+                }
+            }
+        }
+
+        // 获取旧技能列表
+        List<DeveloperSkill> oldSkills = isEdit ? developerDAO.getDeveloperSkills(developer.getDeveloperId()) : new ArrayList<>();
+
+        // 找出要删除的技能
+        for (DeveloperSkill oldSkill : oldSkills) {
+            boolean found = false;
+            for (DeveloperSkill newSkill : newSkills) {
+                if (oldSkill.getSkillId() == newSkill.getSkillId()) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                developerDAO.deleteDeveloperSkill(developer.getDeveloperId(), oldSkill.getSkillId());
+            }
+        }
+
+        // 找出要添加或更新的技能
+        for (DeveloperSkill newSkill : newSkills) {
+            boolean found = false;
+            for (DeveloperSkill oldSkill : oldSkills) {
+                if (newSkill.getSkillId() == oldSkill.getSkillId()) {
+                    if (newSkill.getProficiency() != oldSkill.getProficiency()) {
+                        developerDAO.updateDeveloperSkill(developer.getDeveloperId(), newSkill.getSkillId(), newSkill.getProficiency());
+                    }
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                developerDAO.addDeveloperSkill(developer.getDeveloperId(), newSkill.getSkillId(), newSkill.getProficiency());
+            }
         }
     }
 }

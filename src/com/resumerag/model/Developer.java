@@ -28,6 +28,13 @@ public class Developer {
         this.yearsOfExperience = yearsOfExperience;
     }
 
+
+
+    public Developer(int developerId, String name) {
+        this.developerId = developerId;
+        this.name = name;
+    }
+
     // Getter 和 Setter
     public int getDeveloperId() { return developerId; }
     public void setDeveloperId(int developerId) { this.developerId = developerId; }
@@ -64,10 +71,6 @@ public class Developer {
 
     @Override
     public String toString() {
-        return "Developer{" +
-                "developerId=" + developerId +
-                ", name='" + name + '\'' +
-                ", yearsOfExperience=" + yearsOfExperience +
-                '}';
+        return this.name;
     }
 }
