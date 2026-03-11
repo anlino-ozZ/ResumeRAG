@@ -1,9 +1,7 @@
 package com.resumerag.view;
 
 import javax.swing.*;
-import javax.swing.border.*;
 import java.awt.*;
-import java.awt.event.*;
 
 public class LoadingGlassPane extends JComponent {
     private final JProgressBar progressBar;

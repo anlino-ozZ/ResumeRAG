@@ -4,7 +4,6 @@ import com.resumerag.dao.UserDAO;
 import com.resumerag.model.User;
 
 import javax.swing.*;
-import javax.swing.border.*;
 import java.awt.*;
 import java.awt.event.*;
 /**

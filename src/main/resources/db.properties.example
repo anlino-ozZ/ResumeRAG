@@ -1,0 +1,5 @@
+# 数据库配置（示例文件，不包含真实密码）
+db.driver=com.mysql.cj.jdbc.Driver
+db.url=jdbc:mysql://localhost:3306/resume_rag?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8&allowPublicKeyRetrieval=true
+db.username=your_username
+db.password=your_password
