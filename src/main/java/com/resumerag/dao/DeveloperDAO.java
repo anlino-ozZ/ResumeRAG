@@ -702,6 +702,26 @@ public class DeveloperDAO {
         return false;
     }
 
+    /**
+     * 统计某个技能被多少开发者使用
+     */
+    public int getDeveloperCountBySkill(int skillId) {
+        String sql = "SELECT COUNT(*) FROM DeveloperSkills WHERE skill_id = ?";
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, skillId);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
     // ===================== 私有辅助方法 =====================
 
     private Developer extractDeveloperFromResultSet(ResultSet rs) throws SQLException {

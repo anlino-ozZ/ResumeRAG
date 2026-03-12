@@ -74,7 +74,7 @@ public class DeveloperDialog extends JDialog {
             }
         }
 
-        setSize(500, 600);
+        setSize(500, 650);
         setLocationRelativeTo(owner);
     }
 
@@ -160,9 +160,9 @@ public class DeveloperDialog extends JDialog {
         gbc.weighty = 1.0;
         mainPanel.add(new JScrollPane(evaluationArea), gbc);
 
-        add(mainPanel, BorderLayout.CENTER);
+        add(mainPanel, BorderLayout.NORTH);
 
-        // 技能面板
+        // 技能面板 - 添加到中间位置
         JPanel southPanel = new JPanel(new BorderLayout(5, 5));
         southPanel.setBorder(new EmptyBorder(0, 10, 10, 10));
 
@@ -173,6 +173,9 @@ public class DeveloperDialog extends JDialog {
         JScrollPane skillScroll = new JScrollPane(skillPanel);
         skillScroll.setPreferredSize(new Dimension(450, 150));
         southPanel.add(skillScroll, BorderLayout.CENTER);
+
+        // 添加技能面板到对话框
+        add(southPanel, BorderLayout.CENTER);
 
         // 按钮面板
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -187,6 +190,7 @@ public class DeveloperDialog extends JDialog {
         buttonPanel.add(cancelBtn);
         add(buttonPanel, BorderLayout.SOUTH);
     }
+
     private void exportResume() {
         if (developer == null) {
             JOptionPane.showMessageDialog(this, "没有可导出的简历数据", "错误", JOptionPane.ERROR_MESSAGE);
@@ -271,6 +275,7 @@ public class DeveloperDialog extends JDialog {
                     JOptionPane.ERROR_MESSAGE);
         }
     }
+
     private void initListeners() {
         saveBtn.addActionListener(e -> save());
         cancelBtn.addActionListener(e -> dispose());
@@ -307,12 +312,12 @@ public class DeveloperDialog extends JDialog {
             skillPanel.revalidate();
             skillPanel.repaint();
         });
-        
+
         // 只有 admin 角色可以看到删除技能按钮
         if (!"admin".equalsIgnoreCase(currentUser.getRole())) {
             removeBtn.setVisible(false);
         }
-        
+
         rowPanel.add(removeBtn);
 
         skillPanel.add(rowPanel, gbc);

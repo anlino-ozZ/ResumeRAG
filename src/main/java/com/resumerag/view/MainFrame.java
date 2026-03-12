@@ -375,22 +375,25 @@ public class MainFrame extends JFrame {
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        // 技能选择
+        // 技能选择 - 从数据库动态加载
         gbc.gridx = 0;
         gbc.gridy = 0;
         searchConditionPanel.add(new JLabel("技能标签:"), gbc);
 
         gbc.gridx = 1;
         gbc.gridwidth = 3;
-        JCheckBox javaCheck = new JCheckBox("Java");
-        JCheckBox springCheck = new JCheckBox("Spring Boot");
-        JCheckBox mysqlCheck = new JCheckBox("MySQL");
-        JCheckBox pythonCheck = new JCheckBox("Python");
+        // 使用 List 存储技能复选框，方便后续获取选中项
+        List<JCheckBox> skillCheckBoxes = new ArrayList<>();
         JPanel skillPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        skillPanel.add(javaCheck);
-        skillPanel.add(springCheck);
-        skillPanel.add(mysqlCheck);
-        skillPanel.add(pythonCheck);
+
+        // 从数据库加载所有技能
+        List<Skill> allSkills = skillDAO.getAllSkills();
+        for (Skill skill : allSkills) {
+            JCheckBox checkBox = new JCheckBox(skill.getSkillName());
+            checkBox.setName(String.valueOf(skill.getSkillId())); // 存储技能ID
+            skillCheckBoxes.add(checkBox);
+            skillPanel.add(checkBox);
+        }
         searchConditionPanel.add(skillPanel, gbc);
 
         // 经验年限
@@ -476,9 +479,19 @@ public class MainFrame extends JFrame {
 
         // 搜索按钮事件
         searchBtn.addActionListener(e -> {
-            // 构建技能ID字符串
+            // 构建技能ID字符串 - 从复选框获取选中的技能
             StringBuilder skillIds = new StringBuilder();
-            // TODO: 获取选中的技能ID
+            for (Component comp : skillPanel.getComponents()) {
+                if (comp instanceof JCheckBox) {
+                    JCheckBox checkBox = (JCheckBox) comp;
+                    if (checkBox.isSelected()) {
+                        if (skillIds.length() > 0) {
+                            skillIds.append(",");
+                        }
+                        skillIds.append(checkBox.getName()); // 技能ID存储在name属性中
+                    }
+                }
+            }
 
             // 执行搜索
             List<Developer> results = developerDAO.searchDevelopersBySkills(
@@ -648,11 +661,13 @@ public class MainFrame extends JFrame {
         skillTableModel.setRowCount(0);
         List<Skill> skills = skillDAO.getAllSkills();
         for (Skill s : skills) {
+            // 统计该技能被多少开发者使用
+            int usageCount = developerDAO.getDeveloperCountBySkill(s.getSkillId());
             skillTableModel.addRow(new Object[]{
                     s.getSkillId(),
                     s.getSkillName(),
                     s.getCategory(),
-                    0, // 使用人数 TODO: 从DeveloperSkills统计
+                    usageCount,
                     "编辑/删除"
             });
         }
