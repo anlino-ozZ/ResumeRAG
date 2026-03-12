@@ -21,6 +21,9 @@ public class LoginFrame extends JFrame {
     public LoginFrame() {
         this.userDAO = new UserDAO();
 
+        // 初始化数据库表结构
+        userDAO.initDatabase();
+
         initComponents();
         initLayout();
         initListeners();
@@ -119,6 +122,31 @@ public class LoginFrame extends JFrame {
             return;
         }
 
+        // 先检查用户是否存在
+        User checkUser = userDAO.getUserByUsername(username);
+        if (checkUser == null) {
+            JOptionPane.showMessageDialog(this, "用户名或密码错误", "错误", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // 检查用户状态
+        if ("pending".equals(checkUser.getStatus())) {
+            JOptionPane.showMessageDialog(this,
+                    "您的账号正在等待审核通过，请耐心等待管理员审批。",
+                    "账号待审核",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        if ("rejected".equals(checkUser.getStatus())) {
+            JOptionPane.showMessageDialog(this,
+                    "您的管理员申请已被拒绝，无法登录。\n如需帮助，请联系系统管理员。",
+                    "账号被拒绝",
+                    JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // 验证密码
         User user = userDAO.login(username, password);
         if (user != null) {
             JOptionPane.showMessageDialog(this, "登录成功！", "成功", JOptionPane.INFORMATION_MESSAGE);

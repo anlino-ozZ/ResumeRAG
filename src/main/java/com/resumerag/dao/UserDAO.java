@@ -221,6 +221,28 @@ public class UserDAO {
         }
         return list;
     }
+
+    /**
+     * 11. 获取所有管理员申请（包括 pending、active、rejected 状态）
+     */
+    public List<User> getAllAdminApplicants() {
+        List<User> list = new ArrayList<>();
+        String sql = "SELECT * FROM Users WHERE role = 'pending_admin' ORDER BY created_time DESC";
+        try (Connection conn = DBUtil.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                list.add(extractUserFromResultSet(rs));
+            }
+            rs.close();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
     /**
      * 检查用户名是否存在
      */
@@ -301,6 +323,39 @@ public class UserDAO {
             e.printStackTrace();
         }
         return list;
+    }
+
+    // ===================== 初始化方法 =====================
+
+    /**
+     * 初始化数据库表结构（确保字段长度足够）
+     */
+    public boolean initDatabase() {
+        try (Connection conn = DBUtil.getConnection();
+             Statement stmt = conn.createStatement()) {
+
+            // 检查并添加 status 字段到 Users 表
+            try {
+                stmt.execute("ALTER TABLE Users ADD COLUMN status VARCHAR(20) DEFAULT 'active'");
+                System.out.println("[UserDAO] 添加 status 字段成功");
+            } catch (SQLException e) {
+                // 字段可能已存在，忽略
+                System.out.println("[UserDAO] status 字段已存在或添加失败: " + e.getMessage());
+            }
+
+            // 扩大 role 字段长度（从 20 改为 50），确保能存储 'pending_admin'
+            try {
+                stmt.execute("ALTER TABLE Users MODIFY COLUMN role VARCHAR(50)");
+                System.out.println("[UserDAO] 扩大 role 字段长度成功");
+            } catch (SQLException e) {
+                System.out.println("[UserDAO] role 字段修改失败: " + e.getMessage());
+            }
+
+            return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
     // ===================== 测试方法 =====================

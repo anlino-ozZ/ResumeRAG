@@ -9,7 +9,9 @@ import javax.swing.table.*;
 import java.awt.*;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 系统主界面
@@ -40,6 +42,7 @@ public class MainFrame extends JFrame {
     private JPanel educationPanel;       // 教育管理面板
     private JPanel logPanel;            // 日志统计面板
     private JPanel exportPanel;         // 导出记录面板
+    private JPanel reviewPanel;         // 管理员审核面板
 
     // 工具栏按钮
     private JToolBar toolBar;
@@ -51,6 +54,7 @@ public class MainFrame extends JFrame {
     private JButton educationBtn;
     private JButton logBtn;
     private JButton exportBtn;
+    private JButton reviewBtn;
     private JButton logoutBtn;
 
     // DAO对象
@@ -77,6 +81,8 @@ public class MainFrame extends JFrame {
 
     private DefaultTableModel skillTableModel;
     private DefaultTableModel exportTableModel;
+    private DefaultTableModel reviewTableModel;
+    private JTable reviewTable;
 
     // 分页相关字段
     private int developerCurrentPage = 1;
@@ -181,6 +187,7 @@ public class MainFrame extends JFrame {
         educationBtn = new JButton("教育管理");
         logBtn = new JButton("日志统计");
         exportBtn = new JButton("导出记录");
+        reviewBtn = new JButton("管理员审核");
         logoutBtn = new JButton("注销");
 
         toolBar.add(dashboardBtn);
@@ -201,6 +208,8 @@ public class MainFrame extends JFrame {
             toolBar.add(logBtn);
             toolBar.addSeparator();
             toolBar.add(exportBtn);
+            toolBar.addSeparator();
+            toolBar.add(reviewBtn);
         } else if ("developer".equalsIgnoreCase(currentUser.getRole())) {
             // 开发者不能进行开发者检索和查看日志统计
             toolBar.add(developerBtn);
@@ -233,6 +242,7 @@ public class MainFrame extends JFrame {
         createEducationPanel();
         createLogPanel();
         createExportPanel();
+        createReviewPanel();
     }
 
     /**
@@ -248,6 +258,7 @@ public class MainFrame extends JFrame {
         mainPanel.add(educationPanel, "education");
         mainPanel.add(logPanel, "log");
         mainPanel.add(exportPanel, "export");
+        mainPanel.add(reviewPanel, "review");
     }
 
     /**
@@ -263,6 +274,7 @@ public class MainFrame extends JFrame {
         educationBtn.addActionListener(e -> showEducation());
         logBtn.addActionListener(e -> showLog());
         exportBtn.addActionListener(e -> showExport());
+        reviewBtn.addActionListener(e -> showReview());
         logoutBtn.addActionListener(e -> logout());
 
         // 菜单项事件
@@ -1532,6 +1544,172 @@ public class MainFrame extends JFrame {
     }
 
     /**
+     * 创建管理员审核面板
+     */
+    private void createReviewPanel() {
+        reviewPanel = new JPanel(new BorderLayout(10, 10));
+        reviewPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        // 工具栏
+        JPanel toolPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JButton refreshBtn = new JButton("刷新");
+        JLabel infoLabel = new JLabel("显示所有待审核的用户申请（申请成为管理员）");
+        infoLabel.setForeground(new Color(0, 102, 204));
+        toolPanel.add(refreshBtn);
+        toolPanel.add(infoLabel);
+        reviewPanel.add(toolPanel, BorderLayout.NORTH);
+
+        // 审核表格
+        String[] columns = {"ID", "用户名", "姓名", "电话", "邮箱", "申请时间", "状态", "操作"};
+        reviewTableModel = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column == 7; // 只有操作列可编辑
+            }
+        };
+        reviewTable = new JTable(reviewTableModel);
+
+        // 设置列宽
+        reviewTable.getColumnModel().getColumn(0).setPreferredWidth(50);
+        reviewTable.getColumnModel().getColumn(1).setPreferredWidth(100);
+        reviewTable.getColumnModel().getColumn(2).setPreferredWidth(80);
+        reviewTable.getColumnModel().getColumn(3).setPreferredWidth(100);
+        reviewTable.getColumnModel().getColumn(4).setPreferredWidth(150);
+        reviewTable.getColumnModel().getColumn(5).setPreferredWidth(150);
+        reviewTable.getColumnModel().getColumn(6).setPreferredWidth(80);
+
+        JScrollPane scrollPane = new JScrollPane(reviewTable);
+        scrollPane.setBorder(new TitledBorder("待审核列表"));
+        reviewPanel.add(scrollPane, BorderLayout.CENTER);
+
+        // 操作按钮渲染器和编辑器
+        reviewTable.getColumn("操作").setCellRenderer(new ButtonRenderer());
+        reviewTable.getColumn("操作").setCellEditor(new ButtonEditor(new JCheckBox()) {
+            @Override
+            public Object getCellEditorValue() {
+                if (isPushed) {
+                    int row = reviewTable.convertRowIndexToModel(reviewTable.getEditingRow());
+                    if (row >= 0) {
+                        int userId = (int) reviewTableModel.getValueAt(row, 0);
+                        String username = (String) reviewTableModel.getValueAt(row, 1);
+                        handleApproval(userId, username);
+                    }
+                }
+                isPushed = false;
+                return label;
+            }
+        });
+
+        // 刷新按钮事件
+        refreshBtn.addActionListener(e -> refreshReviewTable());
+
+        // 初始加载
+        refreshReviewTable();
+    }
+
+    /**
+     * 刷新审核列表
+     */
+    private void refreshReviewTable() {
+        reviewTableModel.setRowCount(0);
+
+        // 获取所有管理员申请（包括所有状态）
+        List<User> allAdminApplicants = userDAO.getAllAdminApplicants();
+        List<Developer> developers = developerDAO.getAllDevelopers(1, 1000);
+        Map<Integer, Developer> devMap = new HashMap<>();
+        for (Developer dev : developers) {
+            if (dev.getUserId() != null) {
+                devMap.put(dev.getUserId(), dev);
+            }
+        }
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+        for (User user : allAdminApplicants) {
+            Developer dev = devMap.get(user.getUserId());
+            String name = dev != null ? dev.getName() : "-";
+            String phone = dev != null ? dev.getPhone() : "-";
+            String email = dev != null ? dev.getEmail() : "-";
+            String time = user.getCreatedTime() != null ? user.getCreatedTime().format(formatter) : "-";
+
+            String statusText;
+            if ("pending".equals(user.getStatus())) {
+                statusText = "待审核";
+            } else if ("active".equals(user.getStatus())) {
+                statusText = "已通过";
+            } else if ("rejected".equals(user.getStatus())) {
+                statusText = "已拒绝";
+            } else {
+                statusText = user.getStatus();
+            }
+
+            String actionText = "pending".equals(user.getStatus()) ? "审核" : "查看";
+
+            reviewTableModel.addRow(new Object[]{
+                    user.getUserId(),
+                    user.getUsername(),
+                    name,
+                    phone,
+                    email,
+                    time,
+                    statusText,
+                    actionText
+            });
+        }
+    }
+
+    /**
+     * 处理审核操作
+     */
+    private void handleApproval(int userId, String username) {
+        User user = userDAO.getUserById(userId);
+        if (user == null) {
+            JOptionPane.showMessageDialog(this, "用户不存在", "错误", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        if ("pending".equals(user.getStatus())) {
+            // 弹出审核对话框
+            String[] options = {"通过", "拒绝", "取消"};
+            int choice = JOptionPane.showOptionDialog(
+                    this,
+                    "用户: " + username + "\n是否批准其管理员申请？",
+                    "管理员审核",
+                    JOptionPane.DEFAULT_OPTION,
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    options,
+                    options[2]
+            );
+
+            if (choice == 0) {
+                // 通过审核
+                boolean updated = userDAO.updateUserStatus(userId, "active");
+                if (updated) {
+                    user.setRole("admin");
+                    userDAO.updateUser(user);
+                    JOptionPane.showMessageDialog(this, "已批准 " + username + " 的管理员申请", "审核成功", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(this, "审核失败", "错误", JOptionPane.ERROR_MESSAGE);
+                }
+            } else if (choice == 1) {
+                // 拒绝审核
+                boolean updated = userDAO.updateUserStatus(userId, "rejected");
+                if (updated) {
+                    JOptionPane.showMessageDialog(this, "已拒绝 " + username + " 的管理员申请", "审核完成", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(this, "审核失败", "错误", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+            refreshReviewTable();
+        } else {
+            // 非pending状态，显示信息
+            String statusInfo = "当前状态: " + user.getStatus();
+            JOptionPane.showMessageDialog(this, statusInfo, "用户状态", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
+
+    /**
      * 显示仪表盘
      */
     private void showDashboard() {
@@ -1594,6 +1772,16 @@ public class MainFrame extends JFrame {
         cardLayout.show(mainPanel, "export");
         setTitle("简历RAG管理系统 - 导出记录 - " + currentUser.getUsername());
     }
+
+    /**
+     * 显示管理员审核面板
+     */
+    private void showReview() {
+        cardLayout.show(mainPanel, "review");
+        setTitle("简历RAG管理系统 - 管理员审核 - " + currentUser.getUsername());
+        refreshReviewTable();
+    }
+
     /**
      * 显示用户管理面板
      */

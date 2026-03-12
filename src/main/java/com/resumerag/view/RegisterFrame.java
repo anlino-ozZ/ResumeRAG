@@ -250,6 +250,7 @@ public class RegisterFrame extends JFrame {
         newUser.setStatus(status);  // 设置状态
 
         boolean userAdded = userDAO.addUser(newUser);
+        System.out.println("[注册] 用户创建结果: " + userAdded + ", userId=" + newUser.getUserId());
 
         if (!userAdded) {
             JOptionPane.showMessageDialog(this,
@@ -261,13 +262,15 @@ public class RegisterFrame extends JFrame {
 
         // 步骤2: 获取生成的user_id
         int userId = newUser.getUserId();
+        System.out.println("[注册] 生成的用户ID: " + userId);
 
-        // 步骤3: 创建开发者信息
+        // 步骤3: 创建开发者信息（所有用户都需要开发者记录）
         Developer newDev = new Developer(name, phone, email, 0);
         newDev.setUserId(userId);
         newDev.setSelfEvaluation("新注册用户");
 
         boolean devAdded = developerDAO.addDeveloper(newDev);
+        System.out.println("[注册] 开发者记录创建结果: " + devAdded + ", developerId=" + newDev.getDeveloperId());
 
         if (devAdded) {
             // 注册成功 - 根据角色显示不同提示
