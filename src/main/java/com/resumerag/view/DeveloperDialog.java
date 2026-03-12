@@ -1,17 +1,26 @@
 package com.resumerag.view;
 
 import com.resumerag.dao.DeveloperDAO;
+import com.resumerag.dao.EducationRecordDAO;
 import com.resumerag.dao.ExportRecordDAO;
+import com.resumerag.dao.ProjectExperienceDAO;
 import com.resumerag.dao.SkillDAO;
 import com.resumerag.model.Developer;
 import com.resumerag.model.DeveloperSkill;
+import com.resumerag.model.EducationRecord;
+import com.resumerag.model.ExportRecord;
+import com.resumerag.model.ProjectExperience;
 import com.resumerag.model.Skill;
 import com.resumerag.model.User;
+import com.resumerag.util.ResumeExporter;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
+import java.io.File;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -179,8 +188,88 @@ public class DeveloperDialog extends JDialog {
         add(buttonPanel, BorderLayout.SOUTH);
     }
     private void exportResume() {
-        // TODO: 实现完整的简历导出逻辑 (例如, 使用 iTextPDF 或 Apache POI)
-        JOptionPane.showMessageDialog(this, "简历导出功能尚未实现", "提示", JOptionPane.INFORMATION_MESSAGE);
+        if (developer == null) {
+            JOptionPane.showMessageDialog(this, "没有可导出的简历数据", "错误", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // 选择导出格式
+        String[] options = {"PDF", "Word"};
+        int formatChoice = JOptionPane.showOptionDialog(
+                this,
+                "请选择导出格式：",
+                "导出简历",
+                JOptionPane.DEFAULT_OPTION,
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                options,
+                options[0]
+        );
+
+        if (formatChoice == JOptionPane.CLOSED_OPTION) {
+            return;
+        }
+
+        ResumeExporter.ExportFormat format = (formatChoice == 0)
+                ? ResumeExporter.ExportFormat.PDF
+                : ResumeExporter.ExportFormat.WORD;
+
+        // 选择保存路径
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("保存简历");
+        fileChooser.setSelectedFile(new File(developer.getName() + "_简历" + format.getExtension()));
+
+        if (format == ResumeExporter.ExportFormat.PDF) {
+            fileChooser.setFileFilter(new FileNameExtensionFilter("PDF 文件 (*.pdf)", "pdf"));
+        } else {
+            fileChooser.setFileFilter(new FileNameExtensionFilter("Word 文件 (*.docx)", "docx"));
+        }
+
+        int result = fileChooser.showSaveDialog(this);
+        if (result != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+
+        File outputFile = fileChooser.getSelectedFile();
+        // 确保文件扩展名正确
+        if (!outputFile.getName().toLowerCase().endsWith(format.getExtension())) {
+            outputFile = new File(outputFile.getAbsolutePath() + format.getExtension());
+        }
+
+        try {
+            // 获取完整数据
+            EducationRecordDAO educationDAO = new EducationRecordDAO();
+            ProjectExperienceDAO projectDAO = new ProjectExperienceDAO();
+
+            List<EducationRecord> educations = educationDAO.getEducationRecordsByDeveloperId(developer.getDeveloperId());
+            List<ProjectExperience> projects = projectDAO.getProjectsByDeveloperId(developer.getDeveloperId());
+            List<DeveloperSkill> skills = developerDAO.getDeveloperSkills(developer.getDeveloperId());
+
+            // 执行导出
+            ResumeExporter.exportResume(developer, educations, projects, skills, outputFile, format);
+
+            // 记录导出记录
+            if (exportRecordDAO != null) {
+                ExportRecord record = new ExportRecord();
+                record.setDeveloperId(developer.getDeveloperId());
+                record.setUserId(currentUser != null ? currentUser.getUserId() : null);
+                record.setExportTime(LocalDateTime.now());
+                record.setFileName(outputFile.getName());
+                exportRecordDAO.addExportRecord(record);
+            }
+
+            JOptionPane.showMessageDialog(this,
+                    "简历导出成功！\n保存位置：" + outputFile.getAbsolutePath(),
+                    "导出成功",
+                    JOptionPane.INFORMATION_MESSAGE);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                    "导出失败：" + e.getMessage(),
+                    "错误",
+                    JOptionPane.ERROR_MESSAGE);
+        }
     }
     private void initListeners() {
         saveBtn.addActionListener(e -> save());
