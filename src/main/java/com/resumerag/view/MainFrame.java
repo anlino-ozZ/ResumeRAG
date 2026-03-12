@@ -1400,7 +1400,22 @@ public class MainFrame extends JFrame {
         // 刷新按钮事件
         refreshBtn.addActionListener(e -> {
             model.setRowCount(0);
-            List<ExportRecord> records = exportRecordDAO.getAllExportRecords(1, 100);
+            List<ExportRecord> records;
+
+            // 开发者只能看到自己的导出记录，管理员可以看到所有
+            if ("developer".equalsIgnoreCase(currentUser.getRole())) {
+                // 获取当前用户关联的开发者ID
+                Developer currentDev = developerDAO.getDeveloperByUserId(currentUser.getUserId());
+                if (currentDev != null) {
+                    records = exportRecordDAO.getExportRecordsByDeveloperId(currentDev.getDeveloperId(), 1, 100);
+                } else {
+                    records = new ArrayList<>();
+                }
+            } else {
+                // 管理员可以看到所有记录
+                records = exportRecordDAO.getAllExportRecords(1, 100);
+            }
+
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
             for (ExportRecord er : records) {
