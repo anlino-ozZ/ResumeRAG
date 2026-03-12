@@ -18,6 +18,9 @@ public class Developer {
     private List<ProjectExperience> projects;
     private List<DeveloperSkill> skills;
 
+    // 最高学历（用于搜索结果显示）
+    private String highestDegree;
+
     // 构造方法
     public Developer() {}
 
@@ -68,6 +71,9 @@ public class Developer {
 
     public List<DeveloperSkill> getSkills() { return skills; }
     public void setSkills(List<DeveloperSkill> skills) { this.skills = skills; }
+
+    public String getHighestDegree() { return highestDegree; }
+    public void setHighestDegree(String highestDegree) { this.highestDegree = highestDegree; }
 
     @Override
     public String toString() {

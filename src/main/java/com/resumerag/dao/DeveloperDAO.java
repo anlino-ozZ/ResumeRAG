@@ -17,6 +17,8 @@ import java.util.Map;
 public class DeveloperDAO {
 
     private SkillDAO skillDAO = new SkillDAO();
+    private ProjectExperienceDAO projectExperienceDAO = new ProjectExperienceDAO();
+    private EducationRecordDAO educationRecordDAO = new EducationRecordDAO();
 
     // ===================== 基础CRUD =====================
 
@@ -562,6 +564,113 @@ public class DeveloperDAO {
             e.printStackTrace();
         }
         return list;
+    }
+
+    /**
+     * 17. 高级搜索（技能+学历+经验+关键词）
+     */
+    public List<Developer> advancedSearchWithEducation(String skillIds, String degrees,
+                                                       Integer minExp, Integer maxExp,
+                                                       String keyword, String sortBy,
+                                                       int pageNum, int pageSize) {
+        List<Developer> list = new ArrayList<>();
+        int offset = (pageNum - 1) * pageSize;
+
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT DISTINCT d.* FROM Developers d ");
+        sql.append("LEFT JOIN DeveloperSkills ds ON d.developer_id = ds.developer_id ");
+        sql.append("LEFT JOIN ProjectExperiences p ON d.developer_id = p.developer_id ");
+        sql.append("LEFT JOIN EducationRecords e ON d.developer_id = e.developer_id ");
+        sql.append("WHERE 1=1 ");
+
+        List<Object> params = new ArrayList<>();
+
+        // 经验范围
+        if (minExp != null) {
+            sql.append("AND d.years_of_experience >= ? ");
+            params.add(minExp);
+        }
+        if (maxExp != null) {
+            sql.append("AND d.years_of_experience <= ? ");
+            params.add(maxExp);
+        }
+
+        // 学历条件
+        if (degrees != null && !degrees.trim().isEmpty() && !"全部".equals(degrees)) {
+            sql.append("AND e.degree = ? ");
+            params.add(degrees);
+        }
+
+        // 技能条件
+        if (skillIds != null && !skillIds.trim().isEmpty()) {
+            sql.append("AND ds.skill_id IN (").append(skillIds).append(") ");
+        }
+
+        // 关键词搜索
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql.append("AND (d.name LIKE ? OR d.self_evaluation LIKE ? OR ");
+            sql.append("p.project_name LIKE ? OR p.description LIKE ? OR p.tech_stack LIKE ?) ");
+            String pattern = "%" + keyword + "%";
+            for (int i = 0; i < 5; i++) {
+                params.add(pattern);
+            }
+        }
+
+        // 排序
+        if ("exp".equals(sortBy)) {
+            sql.append("ORDER BY d.years_of_experience DESC ");
+        } else if ("name".equals(sortBy)) {
+            sql.append("ORDER BY d.name ");
+        } else {
+            sql.append("ORDER BY d.developer_id DESC ");
+        }
+
+        sql.append("LIMIT ? OFFSET ?");
+        params.add(pageSize);
+        params.add(offset);
+
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql.toString())) {
+
+            for (int i = 0; i < params.size(); i++) {
+                pstmt.setObject(i + 1, params.get(i));
+            }
+
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                Developer dev = extractDeveloperFromResultSet(rs);
+                // 获取最高学历
+                dev.setHighestDegree(getHighestDegree(conn, dev.getDeveloperId()));
+                list.add(dev);
+            }
+            rs.close();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    /**
+     * 获取开发者的最高学历
+     */
+    private String getHighestDegree(Connection conn, int developerId) {
+        String[] degreeOrder = {"博士", "硕士", "本科", "大专", "高中", "博士后"};
+        String sql = "SELECT degree FROM EducationRecords WHERE developer_id = ? ORDER BY FIELD(degree, ?, ?, ?, ?, ?, ?) LIMIT 1";
+
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, developerId);
+            for (int i = 0; i < degreeOrder.length; i++) {
+                pstmt.setString(i + 2, degreeOrder[i]);
+            }
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getString("degree");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     /**

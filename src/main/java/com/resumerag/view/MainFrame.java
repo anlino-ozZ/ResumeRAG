@@ -406,17 +406,28 @@ public class MainFrame extends JFrame {
         JSpinner expSpinner = new JSpinner(new SpinnerNumberModel(0, 0, 30, 1));
         searchConditionPanel.add(expSpinner, gbc);
 
-        // 关键词
+        // 学历筛选
         gbc.gridx = 2;
-        searchConditionPanel.add(new JLabel("关键词:"), gbc);
+        searchConditionPanel.add(new JLabel("学历:"), gbc);
 
         gbc.gridx = 3;
+        JComboBox<String> degreeCombo = new JComboBox<>(new String[]{"全部", "本科", "硕士", "博士", "大专"});
+        searchConditionPanel.add(degreeCombo, gbc);
+
+        // 关键词
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.gridwidth = 1;
+        searchConditionPanel.add(new JLabel("关键词:"), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridwidth = 3;
         JTextField keywordField = new JTextField(20);
         searchConditionPanel.add(keywordField, gbc);
 
         // 搜索按钮
         gbc.gridx = 0;
-        gbc.gridy = 2;
+        gbc.gridy = 3;
         gbc.gridwidth = 4;
         gbc.anchor = GridBagConstraints.CENTER;
         JButton searchBtn = new JButton("🔍 搜索开发者");
@@ -426,11 +437,11 @@ public class MainFrame extends JFrame {
         searchPanel.add(searchConditionPanel, BorderLayout.NORTH);
 
         // 搜索结果表格
-        String[] columns = {"ID", "姓名", "经验(年)", "电话", "邮箱", "技能数量", "操作"};
+        String[] columns = {"ID", "姓名", "经验(年)", "学历", "电话", "邮箱", "技能数量", "操作"};
         searchResultTableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 6; // 只有操作列可编辑（按钮）
+                return column == 7; // 只有操作列可编辑（按钮）
             }
         };
         searchResultTable = new JTable(searchResultTableModel);
@@ -493,11 +504,15 @@ public class MainFrame extends JFrame {
                 }
             }
 
-            // 执行搜索
-            List<Developer> results = developerDAO.searchDevelopersBySkills(
+            // 执行搜索（包含学历筛选）
+            String selectedDegree = (String) degreeCombo.getSelectedItem();
+            List<Developer> results = developerDAO.advancedSearchWithEducation(
                     skillIds.toString(),
+                    selectedDegree,
                     (Integer) expSpinner.getValue(),
+                    null,
                     keywordField.getText(),
+                    null,
                     1,
                     10
             );
@@ -509,6 +524,7 @@ public class MainFrame extends JFrame {
                         dev.getDeveloperId(),
                         dev.getName(),
                         dev.getYearsOfExperience(),
+                        dev.getHighestDegree() != null ? dev.getHighestDegree() : "无",
                         dev.getPhone(),
                         dev.getEmail(),
                         dev.getSkills() != null ? dev.getSkills().size() : 0,
