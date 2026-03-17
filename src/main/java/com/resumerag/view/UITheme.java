@@ -1,6 +1,7 @@
 package com.resumerag.view;
 
 import javax.swing.*;
+import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.MatteBorder;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -287,32 +288,43 @@ public class UITheme {
     }
 
     /**
-     * 创建现代风格的文本框
+     * 创建现代风格的文本框（带简约边框）
      */
     public static JTextField createStyledTextField(int columns) {
-        JTextField field = new JTextField(columns);
+        JTextField field = new JTextField(columns) {
+            @Override
+            public void setBorder(Border border) {
+                // 不使用自定义边框，只使用默认的内边距
+                super.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
+            }
+        };
         field.setFont(NORMAL_FONT);
         field.setBackground(Color.WHITE);
         field.setForeground(TEXT_COLOR);
         field.setCaretColor(TEXT_COLOR);
-        field.setBorder(null);
         field.setOpaque(true);
         field.setFocusable(true);
+        field.setMargin(new Insets(8, 10, 8, 10));
         return field;
     }
 
     /**
-     * 创建现代风格的密码框
+     * 创建现代风格的密码框（带简约边框）
      */
     public static JPasswordField createStyledPasswordField(int columns) {
-        JPasswordField field = new JPasswordField(columns);
+        JPasswordField field = new JPasswordField(columns) {
+            @Override
+            public void setBorder(Border border) {
+                super.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
+            }
+        };
         field.setFont(NORMAL_FONT);
         field.setBackground(Color.WHITE);
         field.setForeground(TEXT_COLOR);
         field.setCaretColor(TEXT_COLOR);
-        field.setBorder(null);
         field.setOpaque(true);
         field.setFocusable(true);
+        field.setMargin(new Insets(8, 10, 8, 10));
         return field;
     }
 
