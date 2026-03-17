@@ -625,6 +625,32 @@ public class MainFrame extends JFrame {
         scrollPane.setBorder(new TitledBorder("开发者列表"));
         developerPanel.add(scrollPane, BorderLayout.CENTER);
 
+        // 分页面板
+        JPanel paginationPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        developerPageLabel = new JLabel("第 1 页 / 共 1 页");
+        developerPrevBtn = new JButton("上一页");
+        developerNextBtn = new JButton("下一页");
+
+        paginationPanel.add(developerPrevBtn);
+        paginationPanel.add(developerPageLabel);
+        paginationPanel.add(developerNextBtn);
+        developerPanel.add(paginationPanel, BorderLayout.SOUTH);
+
+        // 分页按钮事件
+        developerPrevBtn.addActionListener(e -> {
+            if (developerCurrentPage > 1) {
+                developerCurrentPage--;
+                refreshDeveloperTable();
+            }
+        });
+
+        developerNextBtn.addActionListener(e -> {
+            if (developerCurrentPage < developerTotalPages) {
+                developerCurrentPage++;
+                refreshDeveloperTable();
+            }
+        });
+
         // 刷新按钮事件
         refreshBtn.addActionListener(e -> refreshDeveloperTable());
 
@@ -653,16 +679,33 @@ public class MainFrame extends JFrame {
     private void refreshDeveloperTable() {
         developerTableModel.setRowCount(0);
         List<Developer> developers;
-        
+
         if ("admin".equalsIgnoreCase(currentUser.getRole())) {
-            developers = developerDAO.getAllDevelopers(1, 100);
+            // 获取总数并计算总页数
+            int total = developerDAO.getDeveloperCount();
+            developerTotalPages = (int) Math.ceil((double) total / developerPageSize);
+            if (developerTotalPages < 1) developerTotalPages = 1;
+
+            // 获取当前页数据
+            developers = developerDAO.getAllDevelopers(developerCurrentPage, developerPageSize);
+
+            // 更新分页标签
+            developerPageLabel.setText(String.format("第 %d 页 / 共 %d 页 (共 %d 条)", 
+                developerCurrentPage, developerTotalPages, total));
+
+            // 更新按钮状态
+            developerPrevBtn.setEnabled(developerCurrentPage > 1);
+            developerNextBtn.setEnabled(developerCurrentPage < developerTotalPages);
         } else {
             developers = new ArrayList<>();
             if (currentDeveloper != null) {
                 developers.add(currentDeveloper);
             }
+            developerPageLabel.setText("第 1 页 / 共 1 页");
+            developerPrevBtn.setEnabled(false);
+            developerNextBtn.setEnabled(false);
         }
-        
+
         for (Developer dev : developers) {
             developerTableModel.addRow(new Object[]{
                     dev.getDeveloperId(),

@@ -94,7 +94,7 @@ public class DeveloperDAO {
             return pstmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("更新开发者信息失败", e);
         }
         return false;
     }
@@ -116,7 +116,7 @@ public class DeveloperDAO {
             rs.close();
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("根据ID查询开发者失败", e);
         }
         return null;
     }
@@ -138,7 +138,7 @@ public class DeveloperDAO {
             rs.close();
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("根据用户ID查询开发者失败", e);
         }
         return null;
     }
@@ -180,7 +180,7 @@ public class DeveloperDAO {
             rs.close();
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("查询所有开发者失败", e);
         }
         return list;
     }
@@ -198,7 +198,7 @@ public class DeveloperDAO {
                 return rs.getInt(1);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("获取开发者总数失败", e);
         }
         return 0;
     }
