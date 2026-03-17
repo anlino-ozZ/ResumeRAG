@@ -2,6 +2,8 @@ package com.resumerag.dao;
 
 import com.resumerag.model.User;
 import com.resumerag.util.DBUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -13,6 +15,8 @@ import java.util.List;
  * 包含用户的增删改查操作
  */
 public class UserDAO {
+
+    private static final Logger logger = LoggerFactory.getLogger(UserDAO.class);
 
     // ===================== 增删改查基础方法 =====================
 
@@ -42,7 +46,7 @@ public class UserDAO {
                 return true;
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("添加用户失败", e);
         }
         return false;
     }
@@ -59,7 +63,7 @@ public class UserDAO {
             return pstmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("删除用户失败", e);
         }
         return false;
     }
@@ -80,7 +84,7 @@ public class UserDAO {
             return pstmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("更新用户失败", e);
         }
         return false;
     }
@@ -102,7 +106,7 @@ public class UserDAO {
             rs.close();
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("根据ID查询用户失败", e);
         }
         return null;
     }
@@ -124,7 +128,7 @@ public class UserDAO {
             rs.close();
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("根据用户名查询用户失败", e);
         }
         return null;
     }
@@ -150,7 +154,7 @@ public class UserDAO {
             rs.close();
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("分页查询用户失败", e);
         }
         return list;
     }
@@ -168,7 +172,7 @@ public class UserDAO {
                 return rs.getInt(1);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("获取用户总数失败", e);
         }
         return 0;
     }

@@ -2,6 +2,8 @@ package com.resumerag.dao;
 
 import com.resumerag.model.SearchLog;
 import com.resumerag.util.DBUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -13,6 +15,8 @@ import java.util.List;
  * 用于记录和统计用户的搜索行为
  */
 public class SearchLogDAO {
+
+    private static final Logger logger = LoggerFactory.getLogger(SearchLogDAO.class);
 
     // ===================== 基础CRUD =====================
 
@@ -44,7 +48,7 @@ public class SearchLogDAO {
                 return true;
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("添加搜索日志失败", e);
         }
         return false;
     }
@@ -61,7 +65,7 @@ public class SearchLogDAO {
             return pstmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("删除搜索日志失败", e);
         }
         return false;
     }
@@ -85,7 +89,7 @@ public class SearchLogDAO {
             return pstmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("更新搜索日志失败", e);
         }
         return false;
     }
@@ -110,7 +114,7 @@ public class SearchLogDAO {
             rs.close();
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("根据ID查询搜索日志失败", e);
         }
         return null;
     }
@@ -139,7 +143,7 @@ public class SearchLogDAO {
             rs.close();
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("查询所有搜索日志失败", e);
         }
         return list;
     }
@@ -157,7 +161,7 @@ public class SearchLogDAO {
                 return rs.getInt(1);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("获取搜索日志总数失败", e);
         }
         return 0;
     }
@@ -190,7 +194,7 @@ public class SearchLogDAO {
             rs.close();
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("根据用户ID查询搜索日志失败", e);
         }
         return list;
     }
@@ -222,7 +226,7 @@ public class SearchLogDAO {
             rs.close();
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("根据时间范围查询搜索日志失败", e);
         }
         return list;
     }
@@ -255,7 +259,7 @@ public class SearchLogDAO {
             rs.close();
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("根据关键词搜索日志失败", e);
         }
         return list;
     }
@@ -285,7 +289,7 @@ public class SearchLogDAO {
             rs.close();
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("查询无结果搜索日志失败", e);
         }
         return list;
     }
@@ -319,7 +323,7 @@ public class SearchLogDAO {
             rs.close();
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("统计热门搜索关键词失败", e);
         }
         return list;
     }
@@ -352,7 +356,7 @@ public class SearchLogDAO {
             rs.close();
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("统计热门技能搜索失败", e);
         }
         return list;
     }
@@ -384,7 +388,7 @@ public class SearchLogDAO {
             rs.close();
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("统计每日搜索量失败", e);
         }
         return list;
     }
@@ -412,7 +416,7 @@ public class SearchLogDAO {
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("统计每小时搜索量失败", e);
         }
         return list;
     }
@@ -445,7 +449,7 @@ public class SearchLogDAO {
             rs.close();
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("统计用户搜索活跃度失败", e);
         }
         return list;
     }
@@ -463,7 +467,7 @@ public class SearchLogDAO {
                 return rs.getDouble(1);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("统计平均结果数量失败", e);
         }
         return 0;
     }
@@ -484,7 +488,7 @@ public class SearchLogDAO {
                 return rs.getDouble(1);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("统计搜索成功率失败", e);
         }
         return 0;
     }
@@ -503,7 +507,7 @@ public class SearchLogDAO {
             return pstmt.executeUpdate();
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("清理旧日志失败", e);
         }
         return 0;
     }
@@ -532,7 +536,7 @@ public class SearchLogDAO {
             return pstmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("批量删除日志失败", e);
         }
         return false;
     }

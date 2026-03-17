@@ -2,6 +2,8 @@ package com.resumerag.util;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.sql.*;
@@ -12,6 +14,7 @@ import java.util.Properties;
  */
 public class DBUtil {
 
+    private static final Logger logger = LoggerFactory.getLogger(DBUtil.class);
     private static HikariDataSource dataSource;
     private static Properties props = new Properties();
 
@@ -22,10 +25,10 @@ public class DBUtil {
             props.load(is);
 
             // 添加调试输出，查看实际加载的值
-            System.out.println("加载的数据库配置：");
-            System.out.println("URL: " + props.getProperty("db.url"));
-            System.out.println("用户名: " + props.getProperty("db.username"));
-            System.out.println("密码长度: " + props.getProperty("db.password").length());
+            logger.debug("加载的数据库配置：URL: {}, 用户名: {}", 
+                props.getProperty("db.url"), 
+                props.getProperty("db.username"));
+            logger.debug("密码长度: {}", props.getProperty("db.password").length());
 
             // 配置HikariCP
             HikariConfig config = new HikariConfig();
@@ -49,10 +52,10 @@ public class DBUtil {
 
             dataSource = new HikariDataSource(config);
 
-            System.out.println("✅ 数据库连接池初始化成功");
+            logger.info("数据库连接池初始化成功");
 
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("数据库连接池初始化失败", e);
             throw new RuntimeException("数据库连接池初始化失败", e);
         }
     }
@@ -68,9 +71,9 @@ public class DBUtil {
      * 关闭资源
      */
     public static void close(ResultSet rs, Statement stmt, Connection conn) {
-        try { if (rs != null) rs.close(); } catch (SQLException e) { e.printStackTrace(); }
-        try { if (stmt != null) stmt.close(); } catch (SQLException e) { e.printStackTrace(); }
-        try { if (conn != null) conn.close(); } catch (SQLException e) { e.printStackTrace(); }
+        try { if (rs != null) rs.close(); } catch (SQLException e) { logger.warn("关闭ResultSet失败", e); }
+        try { if (stmt != null) stmt.close(); } catch (SQLException e) { logger.warn("关闭Statement失败", e); }
+        try { if (conn != null) conn.close(); } catch (SQLException e) { logger.warn("关闭Connection失败", e); }
     }
 
     /**
@@ -89,17 +92,16 @@ public class DBUtil {
         Connection conn = null;
         try {
             conn = getConnection();
-            System.out.println("✅ 数据库连接成功！");
-            System.out.println("数据库: " + conn.getCatalog());
+            logger.info("数据库连接成功！数据库: {}", conn.getCatalog());
 
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT NOW() as time");
             if (rs.next()) {
-                System.out.println("当前时间: " + rs.getString("time"));
+                logger.info("当前时间: {}", rs.getString("time"));
             }
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("数据库连接测试失败", e);
         } finally {
             close(null, null, conn);
             closeDataSource();

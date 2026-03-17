@@ -2,6 +2,8 @@ package com.resumerag.dao;
 
 import com.resumerag.model.*;
 import com.resumerag.util.DBUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.time.LocalDate;
@@ -15,6 +17,8 @@ import java.util.Map;
  * 包含开发者的增删改查，以及核心的多对多关联检索
  */
 public class DeveloperDAO {
+
+    private static final Logger logger = LoggerFactory.getLogger(DeveloperDAO.class);
 
     private SkillDAO skillDAO = new SkillDAO();
     private ProjectExperienceDAO projectExperienceDAO = new ProjectExperienceDAO();
@@ -49,7 +53,7 @@ public class DeveloperDAO {
                 return true;
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("添加开发者失败", e);
         }
         return false;
     }
@@ -66,7 +70,7 @@ public class DeveloperDAO {
             return pstmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("删除开发者失败", e);
         }
         return false;
     }

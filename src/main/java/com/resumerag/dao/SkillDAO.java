@@ -2,6 +2,8 @@ package com.resumerag.dao;
 
 import com.resumerag.model.Skill;
 import com.resumerag.util.DBUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -12,6 +14,8 @@ import java.util.List;
  * 包含技能的增删改查操作
  */
 public class SkillDAO {
+
+    private static final Logger logger = LoggerFactory.getLogger(SkillDAO.class);
 
     // ===================== 增删改查基础方法 =====================
 
@@ -37,7 +41,7 @@ public class SkillDAO {
                 return true;
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("添加技能失败", e);
         }
         return false;
     }
@@ -54,7 +58,7 @@ public class SkillDAO {
             return pstmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("删除技能失败", e);
         }
         return false;
     }
